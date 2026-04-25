@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CourtX Analyzer</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section id="upload-screen" class="screen active">
+        <div class="card upload-card">
+          <h1>CourtX Video Analyzer</h1>
+          <p class="subtitle">
+            Upload a local basketball broadcast (up to about 5 minutes) to start
+            frame-by-frame tactical logging.
+          </p>
+
+          <label class="file-input-wrap" for="video-input">
+            <input id="video-input" type="file" accept="video/*" />
+            <span>Select Video</span>
+          </label>
+          <p id="upload-status" class="status-text">Waiting for a video file...</p>
+        </div>
+      </section>
+
+      <section id="dashboard-screen" class="screen">
+        <div class="dashboard-layout">
+          <div class="video-pane card">
+            <div class="video-head">
+              <h2>Game Playback</h2>
+              <div class="chip">Frame Sampling: every 5s</div>
+            </div>
+            <video id="video-player" controls preload="metadata"></video>
+          </div>
+
+          <div class="log-pane card">
+            <div class="log-head">
+              <h2>Real-Time Logger</h2>
+              <p>Newest entries appear first</p>
+            </div>
+            <div id="log-container" class="log-container"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
