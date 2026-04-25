@@ -1,0 +1,146 @@
+ROLE:
+Expert Full-Stack Developer & Cursor AI Assistant.
+
+GOAL:
+Develop a complete 2-screen modern, minimalistic white-themed web application (Frontend: Vanilla HTML/JS/CSS, Backend: Node.js/Express). The app handles local basketball video uploads, continuous real-time frame extraction via Canvas during playback, and stateful API communication with the Gemini API to display a real-time JSON log in reverse chronological order.
+
+CONTEXT:
+The user needs an automated video analysis UI.
+Screen 1 is for uploading a 5-minute basketball broadcast video.
+Screen 2 is the analysis dashboard, featuring a video player (top) and a real-time logger (bottom).
+During video playback, the frontend must continuously capture the current video frame every 5 seconds, send it to the local Node.js backend, which then securely communicates with the Gemini API. Because the Gemini API is stateless, the frontend must pass the previous interval's JSON response back to the API to maintain tracking context.
+
+METHOD:
+
+Architecture & Security: Create a Node.js/Express server to securely handle the Gemini API call (do not expose the API key in the frontend). Create a static frontend folder for the HTML/JS/CSS.
+
+Screen 1 (Upload UI): Create a clean, modern white-themed file upload component. Upon successful video load locally (via URL.createObjectURL), automatically hide Screen 1 and show Screen 2.
+
+Screen 2 (Dashboard UI): Build a UI with a top-half video player (paused by default) and a bottom-half scrolling logger container.
+
+Playback & Capture Logic (Frontend): On "Play", start the video. Implement an interval mechanism using HTML5 Canvas to extract the current frame as a base64 image every 5 seconds. This is lighter and prevents UI stuttering compared to video chunking.
+
+API Integration (Stateless to Stateful): Send the base64 image and the previous JSON log string to the Node.js backend. The backend forwards this to the Gemini API using the exact prompt provided below.
+
+Reverse-Chronological Logger UI: Parse the returned JSON in the frontend.
+
+If status == "no_gameplay", ignore the result and log "no gameplay".
+
+If status == "active_gameplay", format the JSON into a clean UI row and PREPEND it to the Logger container. The newest log must always appear at the top.
+
+GEMINI PROMPT INJECTION:
+Use the exact text below as the system prompt for the Gemini API call in the Node backend:
+
+ROLE: Expert Computer Vision Basketball Scout & API Logging Agent.
+GOAL: Analyze the provided image frame (and any provided historical context) to identify visual player match-ups, outputting the results strictly in valid JSON format.
+CONTEXT: You are the analysis engine for an automated real-time logging script. You receive frames every 5 seconds from a basketball broadcast. You must maintain consistency with previous frames (contextual continuity) to track players accurately, even if their jersey numbers become temporarily obscured.
+METHOD:
+Frame Validation: First, determine if the image shows active gameplay (a wide or tactical angle of the court). If it shows a close-up, the crowd, the coach, or a replay, abort analysis and return the "no_gameplay" status.
+Contextual Tracking: Cross-reference current visual data (jersey numbers, player physique, position) with any previous context to ensure consistent player identification.
+On-Ball Analysis: Identify the ball-carrier and their primary defender (the player squaring up and maintaining a close defensive stance).
+Off-Ball Analysis: Identify other distinct 1-on-1 pairings on the court based on defensive proximity and body orientation.
+Tactical Evaluation: Detect if a match-up is stable ("persistent"), if players swapped assignments ("switch"), or if there is an obvious physical discrepancy ("mismatch").
+CONSTRAINTS:
+Zero Audio/Graphics Reliance: Base all analysis strictly on player movement and positioning.
+No Hallucinations: If a player's ID/number cannot be determined or inferred from context, use a visual descriptor (e.g., "Tall_White_Jersey").
+Strict Output: Output ONLY raw, valid JSON. Do not include markdown formatting (like ```json), conversational text, or explanations outside the JSON structure.
+OUTPUT: Output a single JSON object conforming exactly to this structure:
+{
+"timestamp": "[Insert relative timestamp of the clip]",
+"status": "[active_gameplay OR no_gameplay]",
+"ball_matchup": {
+"offense_id": "[Number or Descriptor]",
+"defense_id": "[Number or Descriptor]",
+"action": "[e.g., Dribbling, Posting up, Holding]"
+},
+"off_ball_matchups": [
+{"offense_id": "[ID]", "defense_id": "[ID]"},
+{"offense_id": "[ID]", "defense_id": "[ID]"}
+],
+"tactical_event": "[None / Switch Detected / Mismatch Detected]",
+"notes": "[Max 1 sentence of pure technical observation]"
+}
+CONSTRAINTS:
+
+Ensure the video capture process using Canvas does not freeze or stutter the browser UI.
+
+Do not hallucinate external heavy dependencies; use native browser APIs for frontend logic and standard Express/Google Generative AI SDK for the backend.
+
+Styling should be modern, clean, and use plain CSS or Tailwind via CDN.
+
+OUTPUT:
+Generate the complete, functional codebase file-by-file (e.g., server.js, public/index.html, public/app.js, public/style.css), including package.json dependencies and clear terminal instructions on how to run the app locally.
+
+
+מקור:
+
+אני רוצה לבנות בעזרת הcurser את הממשק הבא:
+
+1. מסך 1 - UI רקע לבן סגנון מודרני אבל פשוט בו המשתמש מבקש לעלות קובץ וידאו של שידור משחק כדורסל בן 5 דק , לאחר ההעלה של הקובץ המשתמש עובר אוטומטית למסך 2
+
+2. מסך 2-  UI רקע לבן סגנון מודרני אבל פשוט (סגנון זהה למסך 1). בחלק העליון של המסך מוצג חלון בו יש וידאו (לא פועל עד שלוחצים Play), ובחלק התחתון יש מקום לפלט של הLogger:
+
+בלחיצה על כפתור play - 
+
+הוידאו מתחיל לרוץ בזמן אמת על המסך
+
+סקריפט/מערכת: גוזרת את 5 השניות האחרונות מהוידאו (או פריים בודד).
+
+שליחה: שולחת את הקובץ ל-Gemini דרך api יחד עם הפרומפט למטה.
+
+תצוגה: הפלט יופיע לך מיד כשורה אחת ב-Logger.
+
+העברת היסטוריה: מכיוון ש-API הוא "חסר מצב" (Stateless), מומלץ שהסקריפט שלך ישלח ל-API לא רק את הוידאו החדש, אלא גם את ה-JSON מה-5 שניות הקודמות (כ-Text Message באותה קריאה). זה ייתן למודל את ההקשר הדרוש כדי לשמור על רצף.
+
+טיפול בשגיאות: הפרומפט מונחה להחזיר status: no_gameplay כשהמצלמה לא על המגרש. הסקריפט שלך צריך לבדוק את השדה הזה, ואם הוא מופיע – פשוט לדלג ולעבור ל-5 השניות הבאות בלי לנסות לנתח שחקנים.
+
+הפרומפט לgemini:
+
+ROLE:
+Expert Computer Vision Basketball Scout & API Logging Agent.
+
+GOAL:
+Analyze the provided 5-second video segment (and any provided historical context) to identify visual player match-ups, outputting the results strictly in valid JSON format.
+
+CONTEXT:
+You are the analysis engine for an automated real-time logging script. You receive continuous 5-second video clips of a basketball broadcast. You must maintain consistency with previous frames (contextual continuity) to track players accurately, even if their jersey numbers become temporarily obscured.
+
+METHOD:
+
+Frame Validation: First, determine if the video segment shows active gameplay (a wide or tactical angle of the court). If it shows a close-up, the crowd, the coach, or a replay, abort analysis and return the "no_gameplay" status.
+
+Contextual Tracking: Cross-reference current visual data (jersey numbers, player physique, position) with any previous context to ensure consistent player identification.
+
+On-Ball Analysis: Identify the ball-carrier and their primary defender (the player squaring up and maintaining a close defensive stance).
+
+Off-Ball Analysis: Identify other distinct 1-on-1 pairings on the court based on defensive proximity and body orientation.
+
+Tactical Evaluation: Detect if a match-up is stable ("persistent"), if players swapped assignments ("switch"), or if there is an obvious physical discrepancy ("mismatch").
+
+CONSTRAINTS:
+
+Zero Audio/Graphics Reliance: Base all analysis strictly on player movement and positioning.
+
+No Hallucinations: If a player's ID/number cannot be determined or inferred from context, use a visual descriptor (e.g., "Tall_White_Jersey").
+
+Strict Output: Output ONLY raw, valid JSON. Do not include markdown formatting (like ```json), conversational text, or explanations outside the JSON structure.
+
+OUTPUT:
+Output a single JSON object conforming exactly to this structure:
+
+{
+"timestamp": "[Insert relative timestamp of the clip]",
+"status": "[active_gameplay OR no_gameplay]",
+"ball_matchup": {
+"offense_id": "[Number or Descriptor]",
+"defense_id": "[Number or Descriptor]",
+"action": "[e.g., Dribbling, Posting up, Holding]"
+},
+"off_ball_matchups": [
+{"offense_id": "[ID]", "defense_id": "[ID]"},
+{"offense_id": "[ID]", "defense_id": "[ID]"}
+],
+"tactical_event": "[None / Switch Detected / Mismatch Detected]",
+"notes": "[Max 1 sentence of pure technical observation]"
+}
+
