@@ -29,7 +29,7 @@
           <div class="video-pane card">
             <div class="video-head">
               <h2>Game Playback</h2>
-              <div class="chip">Frame Sampling: every 5s</div>
+              <div class="chip">Frame Sampling: every 30s</div>
             </div>
             <video id="video-player" controls preload="metadata"></video>
           </div>
@@ -39,7 +39,16 @@
               <h2>Real-Time Logger</h2>
               <p>Newest entries appear first</p>
             </div>
-            <div id="log-container" class="log-container"></div>
+            <div class="logger-grid">
+              <section class="logger-section">
+                <h3>Analysis Logger</h3>
+                <div id="log-container" class="log-container"></div>
+              </section>
+              <section class="logger-section">
+                <h3>App Logger</h3>
+                <div id="app-log-container" class="log-container app-log-container"></div>
+              </section>
+            </div>
           </div>
         </div>
       </section>

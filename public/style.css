@@ -53,6 +53,7 @@ body {
 
 h1,
 h2,
+h3,
 p {
   margin: 0;
 }
@@ -141,12 +142,31 @@ h1 {
 }
 
 .log-container {
-  height: calc(100% - 42px);
+  height: 100%;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding-right: 4px;
+}
+
+.logger-grid {
+  height: calc(100% - 42px);
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 10px;
+}
+
+.logger-section {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.logger-section h3 {
+  font-size: 0.9rem;
+  color: #4a5468;
 }
 
 .log-row {
@@ -186,6 +206,23 @@ h1 {
   border-style: dashed;
   color: #445064;
   font-size: 0.9rem;
+}
+
+.app-log-row {
+  font-size: 0.85rem;
+  border-left: 4px solid #d6deec;
+}
+
+.app-log-row.warn {
+  border-left-color: #d38d1f;
+}
+
+.app-log-row.error {
+  border-left-color: #c93434;
+}
+
+.app-log-row .row-line {
+  margin-top: 2px;
 }
 
 @media (max-width: 840px) {

@@ -15,6 +15,8 @@ if (!GEMINI_API_KEY) {
 
 const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
+const appLogs = [];
+const MAX_APP_LOGS = 200;
 
 const SYSTEM_PROMPT = `ROLE: Expert Computer Vision Basketball Scout & API Logging Agent.
 GOAL: Analyze the provided image frame (and any provided historical context) to identify visual player match-ups, outputting the results strictly in valid JSON format.
@@ -50,6 +52,25 @@ CONSTRAINTS:`;
 app.use(express.json({ limit: "20mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
+function addAppLog(level, message, meta = {}) {
+  const entry = {
+    id: Date.now() + Math.floor(Math.random() * 1000),
+    at: new Date().toISOString(),
+    level,
+    message,
+    meta
+  };
+
+  appLogs.unshift(entry);
+  if (appLogs.length > MAX_APP_LOGS) {
+    appLogs.length = MAX_APP_LOGS;
+  }
+
+  const metaPart = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : "";
+  const logger = level === "error" ? console.error : console.log;
+  logger(`[APP:${level.toUpperCase()}] ${message}${metaPart}`);
+}
+
 function parseGeminiJson(text) {
   if (!text) {
     return null;
@@ -71,6 +92,7 @@ function parseGeminiJson(text) {
 
 app.post("/api/analyze-frame", async (req, res) => {
   if (!genAI) {
+    addAppLog("error", "Missing GEMINI_API_KEY");
     return res.status(500).json({
       error: "Gemini API key missing. Set GEMINI_API_KEY in .env."
     });
@@ -79,6 +101,7 @@ app.post("/api/analyze-frame", async (req, res) => {
   const { imageBase64, previousContext, timestamp } = req.body || {};
 
   if (!imageBase64 || typeof imageBase64 !== "string") {
+    addAppLog("warn", "Invalid analyze-frame request payload");
     return res.status(400).json({ error: "imageBase64 is required." });
   }
 
@@ -108,17 +131,41 @@ app.post("/api/analyze-frame", async (req, res) => {
     const parsed = parseGeminiJson(responseText);
 
     if (!parsed || typeof parsed !== "object") {
+      addAppLog("error", "Gemini returned non-object JSON");
       return res.status(502).json({ error: "Invalid response from Gemini." });
     }
 
+    addAppLog("info", "Frame analyzed", {
+      timestamp: timestamp ?? "unknown",
+      status: parsed.status ?? "unknown"
+    });
     return res.json({ data: parsed, raw: responseText });
   } catch (error) {
-    console.error("Gemini analyze-frame error:", error);
-    return res.status(500).json({
+    const status = error?.status ?? 500;
+    const details = error?.message || "Unknown error";
+    const retryInfo = Array.isArray(error?.errorDetails)
+      ? error.errorDetails.find((item) => item?.["@type"]?.includes("RetryInfo"))
+      : null;
+    const retryAfter = retryInfo?.retryDelay || null;
+
+    addAppLog("error", "Gemini analyze-frame error", {
+      status,
+      retryAfter,
+      details
+    });
+
+    const statusCode = status === 429 ? 429 : 500;
+    return res.status(statusCode).json({
       error: "Failed to analyze frame.",
-      details: error.message || "Unknown error"
+      details,
+      status,
+      retryAfter
     });
   }
+});
+
+app.get("/api/app-logs", (_req, res) => {
+  return res.json({ logs: appLogs });
 });
 
 app.get("*", (_req, res) => {
@@ -126,5 +173,7 @@ app.get("*", (_req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  addAppLog("info", `Server running on http://localhost:${PORT}`, {
+    model: MODEL_NAME
+  });
 });
