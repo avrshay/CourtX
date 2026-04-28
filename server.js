@@ -13,7 +13,9 @@ if (!GEMINI_API_KEY) {
   );
 }
 
-const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+const FALLBACK_MODEL = "gemini-2.0-flash";
+const envModel = (process.env.GEMINI_MODEL || "").trim();
+const MODEL_NAME = envModel || FALLBACK_MODEL;
 const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
 const appLogs = [];
 const MAX_APP_LOGS = 200;
@@ -148,18 +150,41 @@ app.post("/api/analyze-frame", async (req, res) => {
       : null;
     const retryAfter = retryInfo?.retryDelay || null;
 
+    const invalidModel =
+      status === 404 &&
+      typeof details === "string" &&
+      details.includes("is not found");
+
+    if (invalidModel) {
+      addAppLog("error", "Invalid Gemini model configured", {
+        configuredModel: MODEL_NAME,
+        fallbackModel: FALLBACK_MODEL
+      });
+    }
+
     addAppLog("error", "Gemini analyze-frame error", {
       status,
       retryAfter,
       details
     });
 
+    const quotaExhausted =
+      status === 429 &&
+      typeof details === "string" &&
+      details.toLowerCase().includes("limit: 0");
     const statusCode = status === 429 ? 429 : 500;
+    const errorMessage = invalidModel
+      ? `Configured model "${MODEL_NAME}" is invalid for this API. Set GEMINI_MODEL=${FALLBACK_MODEL} in .env and restart the server.`
+      : quotaExhausted
+      ? "Gemini quota exhausted for this API key/project (limit: 0). Enable billing or use a key/project with available quota."
+      : "Failed to analyze frame.";
+
     return res.status(statusCode).json({
-      error: "Failed to analyze frame.",
+      error: errorMessage,
       details,
       status,
-      retryAfter
+      retryAfter,
+      quotaExhausted
     });
   }
 });

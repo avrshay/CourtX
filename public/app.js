@@ -175,6 +175,16 @@ async function captureAndAnalyzeFrame() {
       const retry = result.retryAfter ? ` | retry in ${result.retryAfter}` : "";
 
       if (response.status === 429) {
+        if (result.quotaExhausted) {
+          // Hard quota exhaustion should not keep hammering the API.
+          cooldownUntilMs = Date.now() + 10 * 60 * 1000;
+          cooldownNotified = true;
+          prependSystemRow(
+            "Gemini quota exhausted (limit: 0). Analysis paused for 10 minutes. Enable billing or switch to an API key/project with quota, then reload."
+          );
+          return;
+        }
+
         const retrySeconds = Math.max(
           parseRetryAfterSeconds(result.retryAfter) ?? 30,
           Math.ceil(SAMPLE_INTERVAL_MS / 1000)
