@@ -6,7 +6,7 @@ const videoPlayer = document.getElementById("video-player");
 const logContainer = document.getElementById("log-container");
 const appLogContainer = document.getElementById("app-log-container");
 
-const SAMPLE_INTERVAL_MS = 30000;
+const SAMPLE_INTERVAL_MS = 5000;
 
 let captureTimer = null;
 let lastContextJson = null;
@@ -290,7 +290,7 @@ videoInput.addEventListener("change", () => {
 
   setUploadStatus(`Loaded: ${file.name}`);
   showDashboard();
-  prependSystemRow("Video ready. Press play to start 30-second frame analysis.");
+  prependSystemRow("Video ready. Press play to start 5-second frame analysis.");
 });
 
 videoPlayer.addEventListener("play", () => {
